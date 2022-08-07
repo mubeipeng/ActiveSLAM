@@ -1,0 +1,106 @@
+#include "planner.hpp"
+# define PI          3.141592653589793238462643383279502884L /* pi */
+
+Planner::Planner(){
+    x_min=0;
+    x_max=0;
+    y_min=0;
+    y_max=0;
+
+    move_to_goal = false;
+    exploration_angular_speed = 0.3;
+    no_samples = 100;
+    camera_view_distance = 5.0;
+}
+
+void Planner::updateCurrentPose(isam::Pose2d pose){
+    current_pose = pose;
+}
+
+void Planner::AddNewAnchorPose(isam::Pose2d_Node* newpos){
+    if(pose_history.size()==0){
+        pose_history.push_back(newpos);
+        return;
+    }
+
+    isam::Pose2d delpos = newpos->value().ominus( pose_history.back()->value() );
+    if (delpos.vector().norm()>1){
+        pose_history.push_back(newpos);
+    }
+}
+
+geometry_msgs::Twist Planner::generateControl(MapProcessor& map_proc){
+    geometry_msgs::Twist control;
+    control.linear.x = 0;  control.linear.y = 0; control.linear.z=0;
+    control.angular.x = 0; control.angular.y = 0; control.angular.z = 0;
+
+    if (!move_to_goal){
+        control.angular.z = exploration_angular_speed;
+        return control;
+    }
+
+    if(path_to_follow.size()==0){
+        generateNextGoal(map_proc);
+    }
+
+    isam::Point2d next_point = *(path_to_follow.begin());
+    control.linear.x = next_point.x();
+    control.angular.z = exploration_angular_speed;
+}
+
+void Planner::generateNextGoal(MapProcessor& map_proc){
+    // update map boundary
+    for(std::map<int,LandmarkClass>::iterator it=map_proc.landmarks.begin();it!=map_proc.landmarks.end();it++){
+        isam::Pose2d lm = it->second.isam_node->value();
+        if(lm.x()<x_min){x_min = lm.x();}
+        if(lm.x()>x_max){x_max = lm.x();}
+        if(lm.y()<y_min){y_min = lm.y();}
+        if(lm.y()>y_max){y_max = lm.y();}
+    }
+
+    // sample points
+    isam::Point2d next_goal;
+    for(int i=0;i<no_samples;i++){
+        //generate a sample point in space, sample valid only when it can be seen by some history pose
+        bool valid_sample = false;
+        double x=rand()*(x_max-x_min)+x_min, y=rand()*(y_max-y_min)+y_min;
+        for(std::list<isam::Pose2d_Node*>::iterator pose_it = pose_history.begin();pose_it!=pose_history.end();pose_it++){
+            isam::Pose2d p = (*pose_it)->value();
+            if( (p.x()-x)*(p.x()-x)+(p.y()-y)*(p.y()-y)< camera_view_distance*camera_view_distance){
+                valid_sample=true;
+                break;
+            }
+        }
+
+        if(!valid_sample){
+            continue;
+        }
+
+        // find visible landmarks
+        std::list<LandmarkClass> lm_visible;
+        for(std::map<int,LandmarkClass>::iterator lm_it=map_proc.landmarks.begin();lm_it!=map_proc.landmarks.end();lm_it++){
+            isam::Pose2d lm = lm_it->second.isam_node->value();
+            //within field of view
+            double dist = (lm.x()-x)*(lm.x()-x)+(lm.y()-y)*(lm.y()-y);
+            if(dist>camera_view_distance*camera_view_distance){
+                continue;
+             }
+             double angle = std::atan2(y-lm.y(),x-lm.x()) - lm.t();
+             if(angle>PI) angle=angle-2*PI;
+             if(angle<-PI) angle = angle + 2*PI;
+             if(-PI/2<angle && angle<PI/2){
+                 continue;
+             }
+
+             //not blocked by obstacles
+             if(hasClearView(x,y,lm,map_proc.landmarks)){
+                 lm_visible.push_back(lm_it->second);
+             }
+        }
+    }
+}
+
+bool Planner::hasClearView(double x, double y, isam::Pose2d lm, std::map<int,LandmarkClass>& landmarks){
+    for
+    return true;
+}

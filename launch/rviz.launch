@@ -1,0 +1,15 @@
+<launch>
+    <arg name="use_sim_time" default="false" />
+    <arg name="camera" default="camera" />
+
+    <node pkg="rosbag" type="play" name="play" 
+		args="/home/beipeng/Desktop/acl_93_2.bag -r 1.0" />
+
+    <node pkg="rviz" type="rviz" name="rviz"/>
+
+    <node pkg="tf" type="static_transform_publisher" name="base_link"
+	args="0.0 0.0 0.0 0.0 0.0 0.0 /map /camera_depth_optical_frame 40" />
+
+    <!--node pkg="rosbag" type="record" name="record" 
+		args="-o /home/beipeng/Desktop/acl_93_2.bag /mobile_base/command/velocity /active_slam/state_estimate /active_slam/topology_feature_map /active_slam/modeCmd"/-->
+</launch>

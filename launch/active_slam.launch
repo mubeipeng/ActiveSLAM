@@ -1,0 +1,35 @@
+<launch>
+    <arg name="use_sim_time" default="false" />
+    <arg name="camera" default="camera" />
+	<arg name="turtlebot" value="TB01" />
+	<arg name="sim" default="false" />
+	<arg name="log" default="false" />
+	<arg name="srv_mode" default="false" />
+	<arg name="keyboard" default="false" />
+	<arg name="joy" default="false" />
+	<arg name="sampleTraj" default="false" />
+	
+	<env name="ROS_NAMESPACE" value="$(arg turtlebot)" />
+	<env if="$(arg sim)" name="ROS_NAMESPACE" value="$(arg turtlebot)s" />
+
+    <!--include file="$(find raven_rviz)/launch/rviz.launch"/-->
+
+    <node pkg="active_slam" type="active_slam_node" name="active_slam" output="screen">
+	<remap from="/camera/rgb/image" to="$(arg camera)/rgb/image_raw"/>
+	<remap from="/camera/depth/image" to="$(arg camera)/depth/image_raw"/>		
+    </node>
+
+    <node name="traj_follower" pkg="traj_follower" type="traj_follower.py" output="screen" args="traj_follower">
+    	<!--remap from="/TB01s/pose" to="/active_slam/state_estimate"/-->
+    	<!--remap from="/TB01s/path" to="/active_slam/path"/-->
+    	<!--remap from="/TB01s/carCmd" to="/active_slam/modeCmd"/-->
+     </node>
+
+	<!--node pkg="rviz" type="rviz" name="rviz"/-->
+
+    <!--node pkg="tf" type="static_transform_publisher" name="base_link"
+	args="0.0 0.0 0.0 0.0 0.0 0.0 /map /camera_depth_optical_frame 40" /-->
+
+    <node pkg="rosbag" type="record" name="record" 
+		args="-o /home/beipeng/Desktop/acl_93.bag /TB01/pose /TB01/topology_feature_map /TB01/path /camera/rgb/image_raw"/>
+</launch>

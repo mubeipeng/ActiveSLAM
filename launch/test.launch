@@ -1,0 +1,19 @@
+<launch>
+    <arg name="use_sim_time" default="true" />
+    <arg name="camera" default="camera" />
+
+    <node pkg="active_slam" type="active_slam_node" name="active_slam" output="screen">
+	<remap from="/camera/rgb/image" to="$(arg camera)/rgb/image_mono"/>
+	<remap from="/camera/depth/image" to="$(arg camera)/depth/image_raw"/>	
+    </node>
+
+    <!--node pkg="rviz" type="rviz" name="rviz"/-->
+
+    <node pkg="tf" type="static_transform_publisher" name="base_link"
+	args="0.0 0.0 0.0 0.0 0.0 0.0 /velodyne /camera_depth_optical_frame 40" />
+
+    <node pkg="rosbag" type="play" name="play" 
+		args=" /media/beipeng/UbuntuFiles/bags/acl_815.bag --clock"/>
+    <!--node pkg="rosbag" type="record" name="record" 
+		args="-o /home/beipeng/Documents/acl_91.bag /active_slam/state_estimate /active_slam/topology_feature_map /active_slam/modeCmd"/-->
+</launch>                                                                         
